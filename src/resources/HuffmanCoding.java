@@ -115,6 +115,8 @@ class HuffmanCoding{
         huffmanCompress(root.leftChild, string + '0', huffmanCode);
         huffmanCompress(root.rightChild, string + '1', huffmanCode);
     }
+ 
+    public static final StringBuilder decompressedString = new StringBuilder();
 
     public static int huffmanDecompress(Node root, int index, StringBuilder stringBuilder) {
         if (root == null) {
@@ -122,7 +124,7 @@ class HuffmanCoding{
         }
 
         if (isLeaf(root)) {
-            System.out.print(root.character);
+            decompressedString.append(root.character);
             return index;
         }
 
@@ -131,6 +133,20 @@ class HuffmanCoding{
         root = (stringBuilder.charAt(index) == '0') ? root.leftChild : root.rightChild;
         index = huffmanDecompress(root, index, stringBuilder);
         return index;
+    }
+
+    /**
+     * saving the decompressed Huffman Code to a file with type String
+     */
+    public static void saveDecompressedToFile() {
+        // specifying the path of the output file
+        try (FileOutputStream fileOutputStream = new FileOutputStream("./out/huffman_decompressed_file.txt", true)) {
+            fileOutputStream.write(decompressedString.toString().getBytes());
+        }
+        catch (IOException error) {
+            // printing the stack trace if an I/O exception has occured
+            error.printStackTrace();
+        }
     }
 
     /**
@@ -182,69 +198,58 @@ class HuffmanCoding{
         Map<Character, String> huffmanCode = new HashMap<>();
         huffmanCompress(root, "", huffmanCode);
 
+        // building a stringBuilder object for encoded string
         StringBuilder stringBuilder = new StringBuilder();
         for (char character : inputString.toCharArray()) {
             stringBuilder.append(huffmanCode.get(character));
         }
 
+        // converting the encoded stringBuilder object to binary
         byte[] binaryConverted = getBinary(stringBuilder.toString());
 
-        try {
-            OutputStream output = new FileOutputStream("huffman_encoded_file.bin");
+        // specifying the output file for converted binary
+        try (OutputStream output = new FileOutputStream("./out/huffman_compressed_file.bin")) {
+            // writing the binary to the output file
             output.write(binaryConverted);
-            output.close();
         } 
         catch (IOException exception) {
-            exception.printStackTrace();
-        }
-
-        try {
-            byte[] allBytes = Files.readAllBytes(Paths.get("huffman_encoded_file.bin"));
-        }
-        catch (IOException exception) {
+            // printing the stack trace if an I/O exception has occured
             exception.printStackTrace();
         }
 
         // assigning variable encodeEndTime to be the current time in ms
         final long encodeEndTime = System.currentTimeMillis();
-
+    
+        // DECODE
+        // assigning variable encodeEndTime to be the current time in ms
         final long decodeStartTime = System.currentTimeMillis();
-
-        StringBuilder encodedString = new StringBuilder();
-		for (char character: inputString.toCharArray()) {
-			encodedString.append(huffmanCode.get(character));
-		}
-
-        StringBuilder decodedString = new StringBuilder();
         if (isLeaf(root)) {
-			while (root.frequency-- > 0) {
-				decodedString.append(root.character);
-                System.out.println(decodedString);
-			}
-		}
-		else {
-			int index = -1;
-			while (index < encodedString.length() - 1) {
-				index = huffmanDecompress(root, index, encodedString);
-			}
-		}
-        try {
-            OutputStream output = new FileOutputStream("huffman_decoded_file.txt");
-            output.write(decodedString.toString().getBytes());
-            output.close();
-        } 
-        catch (IOException exception) {
-            exception.printStackTrace();
+            while (root.frequency-- > 0) {
+                System.out.print(root.character);
+            }
+        }
+        else {
+            int index = -1;
+            while (index < stringBuilder.length() - 1) {
+                index = huffmanDecompress(root, index, stringBuilder);
+            }
         }
 
+        // calling function saveDecompressedToFile
+        saveDecompressedToFile();
+
+        // assigning variable encodeEndTime to be the current time in ms
         final long decodeEndTime = System.currentTimeMillis();
+
         // returning the total time taken for the file to be compressed and saved
         System.out.println("Total encode time: " + (encodeEndTime - encodeStartTime) + "ms");
-        //System.out.println("Total decode time: " + (decodeEndTime - decodeStartTime) + "ms");
+
+        // returning the total time taken for the file to be decompressed and saved
+        System.out.println("Total decode time: " + (decodeEndTime - decodeStartTime) + "ms");
     }
 
     public static void main(String[] args) {
-        String filePath = "./resources/books/Alice'sAdventuresInWonderland(ENG).txt";
+        String filePath = "./resources/datasets/dataset_real(world_leaders).txt";
         buildHuffmanTree(readLineToString(filePath));
     }
 }
