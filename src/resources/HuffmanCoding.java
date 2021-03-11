@@ -3,9 +3,14 @@ import java.util.PriorityQueue;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.stream.Stream;
+import java.util.Scanner;
 import java.io.IOException;
 import java.io.FileOutputStream;
+import java.io.FileInputStream;
+import java.io.ObjectOutputStream;
+import java.io.ObjectInputStream;
 import java.io.OutputStream;
+import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -94,7 +99,7 @@ class HuffmanCoding{
      * converting a given bytes to type string.
      * 
      * @param bytes bytes to be converted to string
-     * @return converted string from given bytes
+     * @return converted stringbuilder from given bytes
      */
     public static StringBuilder getString(byte[] bytes) {
         StringBuilder sb = new StringBuilder(bytes.length * Byte.SIZE);
@@ -104,14 +109,13 @@ class HuffmanCoding{
     }
 
     /**
-     * transversing the huffman tree and storing huffman codes in a map.
+     * traversing the huffman tree and storing huffman codes in a map.
      * 
      * @param root
      * @param string
-     * @param huffmanCode
+     * @param huffmanCode hash map that contains the huffman codes
      */
-    public static void huffmanCompress(Node root, String string, Map<Character, String> huffmanCode) {
-        // return if the node is an internal node
+    public static void huffmanEncode(Node root, String string, Map<Character, String> huffmanCode) {
         if (root == null) {
             return;
         }
@@ -120,56 +124,9 @@ class HuffmanCoding{
             huffmanCode.put(root.character, string.length() > 0 ? string : "1");
         }
 
-        huffmanCompress(root.leftChild, string + '0', huffmanCode);
-        huffmanCompress(root.rightChild, string + '1', huffmanCode);
-    }
- 
-    // initialising a StringBUilder object for the decompressed string
-    public static final StringBuilder decompressedString = new StringBuilder();
-
-    /**
-     * transversing the huffman tree and appending decompressedString with the decoded string.
-     * 
-     * @param root
-     * @param index
-     * @param toDecompress a StringBuilder object which contains the converted binary from compressed .bin file
-     */
-    public static int huffmanDecompress(Node root, int index, StringBuilder toDecompress) {
-        try {
-            if (root == null) {
-                return index;
-            }
-    
-            if (isLeaf(root)) {
-                decompressedString.append(root.character);
-                return index;
-            }
-    
-            index++;
-            root = (toDecompress.charAt(index) == '0') ? root.leftChild : root.rightChild;
-            index = huffmanDecompress(root, index, toDecompress);
-            return index;
-        }
-        catch (StringIndexOutOfBoundsException e) {
-            // returning if the index is out of string bounds
-            return index;
-        }
-    }
-
-    /**
-     * saving the decompressed Huffman Code to a file with type String
-     * 
-     * @param targetFileName the file name of the original file
-     */
-    public static void saveDecompressedToFile(String targetFileName) {
-        // specifying the path of the output file
-        try (FileOutputStream fileOutputStream = new FileOutputStream("./out/(huffman decompressed)" + targetFileName, true)) {
-            fileOutputStream.write(decompressedString.toString().getBytes());
-        }
-        catch (IOException error) {
-            // printing the stack trace if an I/O exception has occured
-            error.printStackTrace();
-        }
+        // traversing the huffman tree by passing the left and right childs
+        huffmanEncode(root.leftChild, string + '0', huffmanCode);
+        huffmanEncode(root.rightChild, string + '1', huffmanCode);
     }
 
     /**
@@ -185,17 +142,19 @@ class HuffmanCoding{
     /**
      * building the Huffman Tree, compressing the string and saving the compressed string to a binary file.
      * 
-     * @param targetFileName the file name to be compressed
+     * @param origin the name of the file to be compressed
+     * @param destination the name of the output file
      */
-    public static void buildHuffmanTree(String targetFileName) {
+    public static void huffmanCompress(String origin, String destination) {
+        // specifying the path of the file to be compressed
+        String filePath = "./resources/fileToTest/" + origin;
         // calling function readLineToString to read lines from given file to string
-        String filePath = "./resources/fileToTest/" + targetFileName;
         String inputString = readLineToString(filePath);
-        String fileName = targetFileName.substring(0, targetFileName.length()-4);
 
         // assigning variable compressStartTime to be the current time in ms
         final long compressStartTime = System.currentTimeMillis();
 
+        // creating a hash map to store the frequency of characters
         Map<Character, Integer> frequency = new HashMap<>();
         PriorityQueue<Node> priorityQueue;
 
@@ -204,10 +163,12 @@ class HuffmanCoding{
             return;
         }
 
+        // counting the frequency of a character and putting it in a map
         for (char character : inputString.toCharArray()) {
             frequency.put(character, frequency.getOrDefault(character, 0) + 1);
         }
 
+        // initialising the priority queue 
         priorityQueue = new PriorityQueue<>(Comparator.comparingInt(l -> l.frequency));
 
         for (var entry : frequency.entrySet()) {
@@ -218,15 +179,29 @@ class HuffmanCoding{
             Node leftChild = priorityQueue.poll();
             Node rightChild = priorityQueue.poll();
 
+            // setting the frequency of internal node to be the sum of frequency of left and right child
             int frequencySum = leftChild.frequency + rightChild.frequency;
             priorityQueue.add(new Node (null, frequencySum, leftChild, rightChild));
         }
 
         Node root = priorityQueue.peek();
 
+        // initialising a hash map object to store the huffman codes
         Map<Character, String> huffmanCode = new HashMap<>();
-        huffmanCompress(root, "", huffmanCode);
+        huffmanEncode(root, "", huffmanCode);
 
+        // storing the hash map huffmanCode to a file for future reference
+        try (FileOutputStream fos = new FileOutputStream(new File("./out/" + destination + ".huffmancode"))) {
+            ObjectOutputStream oos = new ObjectOutputStream(fos);
+            oos.writeObject(huffmanCode);
+            oos.flush();
+            oos.close();
+        } 
+        catch (Exception e) {
+            // printing the stack trace if there is an exception
+            e.printStackTrace();
+        }
+        
         // building a stringBuilder object to store the encoded string
         StringBuilder stringBuilder = new StringBuilder();
         for (char character : inputString.toCharArray()) {
@@ -237,7 +212,7 @@ class HuffmanCoding{
         byte[] binaryConverted = getBinary(stringBuilder.toString());
 
         // specifying the output file for converted binary
-        try (OutputStream output = new FileOutputStream("./out/(huffman_compressed)" + fileName + ".bin")) {
+        try (OutputStream output = new FileOutputStream("./out/" + destination)) {
             // writing the binary to the output file
             output.write(binaryConverted);
         } 
@@ -245,55 +220,142 @@ class HuffmanCoding{
             // printing the stack trace if an I/O exception has occured
             exception.printStackTrace();
         }
-
+       
         // assigning variable compressEndTime to be the current time in ms
         final long compressEndTime = System.currentTimeMillis();
-    
-        // assigning variable decompressEndTime to be the current time in ms
+
+        // returning the statistics of compressing the file
+        File originalFile = new File(filePath);
+        File compressedFile = new File("./out/" + destination);
+        double originalFileSizeBytes = (double)originalFile.length();
+        double compressedFileSizeBytes = (double)compressedFile.length();
+        System.out.println("Statistics of compressing the file:");
+        System.out.println("Compress time: " + (compressEndTime - compressStartTime) + "ms");
+        System.out.println("Location of compressed file: ./out/" + destination);
+        System.out.println("Size of compressed file: " + compressedFileSizeBytes + " bytes");
+        System.out.println("Compression rate:: " + (originalFileSizeBytes - compressedFileSizeBytes)/originalFileSizeBytes*100 + "%");
+        System.out.println("");
+    }
+
+    /**
+     * decompressing the Huffman encoded stringbuilder object with the hash map
+     * 
+     * @param huffmanCode the hash map storing the characters and the respective binary codes
+     * @param toDecompress the stringbuilder object to be decompressed
+     * @param destination the name of the file where the decompressed string will be stored
+     */
+    public static void huffmanDecompress(Map<Character, String> huffmanCode, StringBuilder toDecompress, String destination) {
+        // assigning variable decompressStartTime to be the current time in ms
         final long decompressStartTime = System.currentTimeMillis();
-        try {
-            byte[] allBytes = Files.readAllBytes(Paths.get("./out/(huffman_compressed)" + fileName + ".bin"));
-            StringBuilder toDecompress = getString(allBytes);
-            if (isLeaf(root)) {
-                while (root.frequency-- > 0) {
-                    decompressedString.append(root.character);
-                }
-            }
-            else {
-                int index = -1;
-                while (index < toDecompress.length() - 1) {
-                    index = huffmanDecompress(root, index, toDecompress);
-                }
-            }
-            // calling function saveDecompressedToFile to save the decompressed string to a file
-            saveDecompressedToFile(targetFileName);
-        }
-        catch (IOException exception) {
-            // printing the stack trace if there is an I/O Exception
-            exception.printStackTrace();
+        // creating a stringBuilder result which stores the decoded string
+        StringBuilder result = new StringBuilder();
+        // creating a stringBuilder temp which appends the encoded bits 
+        StringBuilder temp = new StringBuilder();
+
+        // creating a hash map to store the swapped huffmanCode
+        HashMap<String, Character> swapped = new HashMap<>();
+        // swapping the keys and the values of hash map huffmanCode and storing it in swapped
+        for (Map.Entry<Character, String> entry : huffmanCode.entrySet()) {
+            swapped.put(entry.getValue(), entry.getKey());
         }
 
-        // assigning variable decompressEndTime to be the current time in ms
+        char[] bits = toDecompress.toString().toCharArray();
+        for (int i = 0; i < bits.length; i++) {
+            temp.append(bits[i]);
+            Object value = swapped.get(temp.toString());
+            // continue the for loop if value is not found
+            if (value == null) {
+                continue;
+            }
+            // appending the stringBuilder object with value
+            result.append(value);
+            // clearing the stringBuilder temp
+            temp.setLength(0);
+        }
+        // calling function saveDecompressedToFile to save the decompressed string to given file
+        saveDecompressedToFile(result, destination);
+
+        // assigning variable compressEndTime to be the current time in ms
         final long decompressEndTime = System.currentTimeMillis();
 
-        // returning the total time taken for the file to be compressed and saved
-        System.out.println("Total encode time: " + (compressEndTime - compressStartTime) + "ms");
+        // returning the statistics of decompressing the file
+        System.out.println("File decompressed:");
+        System.out.println("Decompress time: " + (decompressEndTime - decompressStartTime) + "ms");
+        System.out.println("Location of decompressed file: ./out/" + destination);
+        System.out.println("");
+    }
 
-        // returning the total time taken for the file to be decompressed and saved
-        System.out.println("Total decode time: " + (decompressEndTime - decompressStartTime) + "ms");
+    /**
+     * saving the decompressed Huffman Code to a file with type String
+     * 
+     * @param targetFileName the file name of the original file
+     */
+    public static void saveDecompressedToFile(StringBuilder toSaveDecompressed, String destination) {
+        // specifying the path of the output file
+        File outputDecompressedFile = new File("./out/" + destination);
+        try (FileOutputStream outputStream = new FileOutputStream(outputDecompressedFile, false)) {
+            outputStream.write(toSaveDecompressed.toString().getBytes());
+        }
+        catch (IOException error) {
+            // printing the stack trace if an I/O exception has occured
+            error.printStackTrace();
+        }
     }
 
     /**
      * the main method.
      */
     public static void main(String[] args) {
-        // the name of the target file to be compressed using huffman coding
-        // note: files to be compressed are to be put in ./resources/fileToTest/
-        // note: only .txt files are supported
-        String targetFileName = "dataset_artifical(rs.13).txt";
+        // clearing the console 
+        System.out.print("\033[H\033[2J");  
+        System.out.flush(); 
 
-        // calling function buildHuffmanTree to build the huffman tree
-        // compress and decompress the target file and save them into seperate files located in ./out/
-        buildHuffmanTree(targetFileName);
+        System.out.println("Huffman Coding - Compression/Decompression");
+        System.out.println("");
+        System.out.println("");
+        System.out.println("Please follow the format of entry: <option> <origin> <destination>");
+        System.out.println("");
+        System.out.println("For example, if you want to compress file <tocompress.txt> and store it as <compressed.bin>, enter:");
+        System.out.println("compress tocompress.txt compressed.bin");
+        System.out.println("");
+        System.out.println("Otherwise, if you want to decompress file <compressed.bin> and save it as <decompressed.txt>, enter:");
+        System.out.println("decompress compressed.bin tocompress.txt");
+        System.out.println("");
+
+        // initialising a scanner object
+        Scanner userInput = new Scanner(System.in);
+        String userSelection = userInput.nextLine();
+        // splitting the user-inputted object with " "
+        String[] userFields = userSelection.split(" ");
+        // checking if the length of the splitted string array is 3 
+        if (userFields.length == 3) {
+            String option = userFields[0];
+            String origin = userFields[1];
+            String destination = userFields[2];
+            if (option.equals("compress")) {
+                huffmanCompress(origin, destination);
+            }
+            else if (option.equals("decompress")) {
+                try (FileInputStream fis = new FileInputStream("./out/" + origin + ".huffmancode")) {
+                    ObjectInputStream ois = new ObjectInputStream(fis);
+                    @SuppressWarnings("unchecked")
+                    HashMap<Character,String> huffmanCode = (HashMap<Character,String>)ois.readObject();
+                    ois.close();
+                    byte[] bytesToDecompress = Files.readAllBytes(Paths.get("./out/" + origin));
+                    StringBuilder toDecompress = getString(bytesToDecompress);
+                    huffmanDecompress(huffmanCode, toDecompress, destination);
+                }
+                catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            else {
+                System.out.println("Please enter a valid option (compress/ decompress)");
+            }
+        }
+        else {
+            System.out.println("Please follow the correct format of entry");
+        }
+        userInput.close();
     }
 }
