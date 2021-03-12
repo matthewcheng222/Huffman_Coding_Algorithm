@@ -37,15 +37,25 @@ The decompressing algorithm will then decompress this file and save the output i
 Note: large datasets are not included since they are too large for file uploads. They can be obtained from [repetitive corpus](http://pizzachili.dcc.uchile.cl/repcorpus.html)
 
 ### List of books and datasets used for testing
+
 [book_Alice's_Adventures_In_Wonderland(ENG).txt](https://www.gutenberg.org/files/11/11-0.txt)
+
 [book_Alice's_Adventures_In_Wonderland(FR).txt](https://www.gutenberg.org/files/55456/55456-0.txt)
+
 [book_Alice's_Adventures_In_Wonderland(PT).txt](http://www.gutenberg.org/files/17482/17482-0.txt)
+
 [book_Oliver_Twist(ENG).txt](https://www.gutenberg.org/files/730/730-0.txt)
+
 [book_Oliver_Twist(FR).txt](https://www.gutenberg.org/files/61994/61994-0.txt)
+
 [book_Oliver_Twist(PT).txt](https://www.gutenberg.org/files/61994/61994-0.txt)
+
 [dataset_artifical(rs.13).txt](http://pizzachili.dcc.uchile.cl/repcorpus/artificial/rs.13.7z)
+
 [dataset_artificial(fib41).txt](http://pizzachili.dcc.uchile.cl/repcorpus/artificial/fib41.7z)
+
 [dataset_pseudo_real(dsources.001.2).txt](http://pizzachili.dcc.uchile.cl/repcorpus/pseudo-real/sources.001.2.7z)
+
 [dataset_real(world_leaders).txt](http://pizzachili.dcc.uchile.cl/repcorpus/real/world_leaders.7z)
 
 ***
