@@ -109,10 +109,20 @@ class HuffmanCoding{
     }
 
     /**
+     * checking if the node is a leaf node.
+     * 
+     * @param root the node to be checked
+     * @return true if the tree is a leaf node
+     */
+    public static boolean isLeaf(Node root) {
+        return root.leftChild == null && root.rightChild == null;
+    }
+
+    /**
      * traversing the huffman tree and storing huffman codes in a map.
      * 
-     * @param root
-     * @param string
+     * @param root the current node
+     * @param string the binary codes of the Huffman Tree
      * @param huffmanCode hash map that contains the huffman codes
      */
     public static void huffmanEncode(Node root, String string, Map<Character, String> huffmanCode) {
@@ -130,16 +140,6 @@ class HuffmanCoding{
     }
 
     /**
-     * checking if the node is a leaf node.
-     * 
-     * @param root the node to be checked
-     * @return true if the tree is an internal node
-     */
-    public static boolean isLeaf(Node root) {
-        return root.leftChild == null && root.rightChild == null;
-    }
-
-    /**
      * building the Huffman Tree, compressing the string and saving the compressed string to a binary file.
      * 
      * @param origin the name of the file to be compressed
@@ -147,7 +147,7 @@ class HuffmanCoding{
      */
     public static void huffmanCompress(String origin, String destination) {
         // specifying the path of the file to be compressed
-        String filePath = "./resources/fileToTest/" + origin;
+        String filePath = "../resources/fileToTest/" + origin;
         // calling function readLineToString to read lines from given file to string
         String inputString = readLineToString(filePath);
 
@@ -169,21 +169,26 @@ class HuffmanCoding{
         }
 
         // initialising the priority queue 
-        priorityQueue = new PriorityQueue<>(Comparator.comparingInt(l -> l.frequency));
+        priorityQueue = new PriorityQueue<>(Comparator.comparingInt(character -> character.frequency));
 
+        // adding a node to the priority queue
         for (var entry : frequency.entrySet()) {
             priorityQueue.add(new Node(entry.getKey(), entry.getValue()));
         }
 
+        // stops if the size of priority queue is 1
         while (priorityQueue.size() != 1) {
+            // retrieving the characters with the least frequency to be child nodes and removing them from the queue
             Node leftChild = priorityQueue.poll();
             Node rightChild = priorityQueue.poll();
 
             // setting the frequency of internal node to be the sum of frequency of left and right child
             int frequencySum = leftChild.frequency + rightChild.frequency;
+            // adding a new internal node to the priority queue
             priorityQueue.add(new Node (null, frequencySum, leftChild, rightChild));
         }
 
+        // retrieving the head of the queue but not removing it
         Node root = priorityQueue.peek();
 
         // initialising a hash map object to store the huffman codes
@@ -191,7 +196,7 @@ class HuffmanCoding{
         huffmanEncode(root, "", huffmanCode);
 
         // storing the hash map huffmanCode to a file for future reference
-        try (FileOutputStream fos = new FileOutputStream(new File("./out/" + destination + ".huffmancode"))) {
+        try (FileOutputStream fos = new FileOutputStream(new File("../out/" + destination + ".huffmancode"))) {
             ObjectOutputStream oos = new ObjectOutputStream(fos);
             oos.writeObject(huffmanCode);
             oos.flush();
@@ -212,7 +217,7 @@ class HuffmanCoding{
         byte[] binaryConverted = getBinary(stringBuilder.toString());
 
         // specifying the output file for converted binary
-        try (OutputStream output = new FileOutputStream("./out/" + destination)) {
+        try (OutputStream output = new FileOutputStream("../out/" + destination)) {
             // writing the binary to the output file
             output.write(binaryConverted);
         } 
@@ -226,12 +231,12 @@ class HuffmanCoding{
 
         // returning the statistics of compressing the file
         File originalFile = new File(filePath);
-        File compressedFile = new File("./out/" + destination);
+        File compressedFile = new File("../out/" + destination);
         double originalFileSizeBytes = (double)originalFile.length();
         double compressedFileSizeBytes = (double)compressedFile.length();
         System.out.println("Statistics of compressing the file:");
         System.out.println("Compress time: " + (compressEndTime - compressStartTime) + "ms");
-        System.out.println("Location of compressed file: ./out/" + destination);
+        System.out.println("Location of compressed file: ../out/" + destination);
         System.out.println("Size of compressed file: " + compressedFileSizeBytes + " bytes");
         System.out.println("Compression rate:: " + (originalFileSizeBytes - compressedFileSizeBytes)/originalFileSizeBytes*100 + "%");
         System.out.println("");
@@ -281,7 +286,7 @@ class HuffmanCoding{
         // returning the statistics of decompressing the file
         System.out.println("File decompressed:");
         System.out.println("Decompress time: " + (decompressEndTime - decompressStartTime) + "ms");
-        System.out.println("Location of decompressed file: ./out/" + destination);
+        System.out.println("Location of decompressed file: ../out/" + destination);
         System.out.println("");
     }
 
@@ -292,7 +297,7 @@ class HuffmanCoding{
      */
     public static void saveDecompressedToFile(StringBuilder toSaveDecompressed, String destination) {
         // specifying the path of the output file
-        File outputDecompressedFile = new File("./out/" + destination);
+        File outputDecompressedFile = new File("../out/" + destination);
         try (FileOutputStream outputStream = new FileOutputStream(outputDecompressedFile, false)) {
             outputStream.write(toSaveDecompressed.toString().getBytes());
         }
@@ -336,12 +341,12 @@ class HuffmanCoding{
                 huffmanCompress(origin, destination);
             }
             else if (option.equals("decompress")) {
-                try (FileInputStream fis = new FileInputStream("./out/" + origin + ".huffmancode")) {
+                try (FileInputStream fis = new FileInputStream("../out/" + origin + ".huffmancode")) {
                     ObjectInputStream ois = new ObjectInputStream(fis);
                     @SuppressWarnings("unchecked")
                     HashMap<Character,String> huffmanCode = (HashMap<Character,String>)ois.readObject();
                     ois.close();
-                    byte[] bytesToDecompress = Files.readAllBytes(Paths.get("./out/" + origin));
+                    byte[] bytesToDecompress = Files.readAllBytes(Paths.get("../out/" + origin));
                     StringBuilder toDecompress = getString(bytesToDecompress);
                     huffmanDecompress(huffmanCode, toDecompress, destination);
                 }
